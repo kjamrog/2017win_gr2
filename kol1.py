@@ -17,40 +17,66 @@
 import random
 import time
 
-def getRandomOrientation():
-    return random.gauss(0, 20)
 
-print('Simulating turbulations.\nPress Ctrl^C to break\n')
+class TurbulenceGenerator(object):
+    def __init__(self, sigma):
+        self.sigma = sigma
+        self.turbulence = 0.0
+
+    def generate(self):
+        self.turbulence = random.gauss(0, self.sigma)
+
+    def get_current(self):
+        return self.turbulence
+
+    def generate_and_return(self):
+        self.generate()
+        return self.get_current()
+
 
 class Correction(object):
-    def __init__(self):
-        self.start_orientation = random.gauss(0, 10)
-        print('Start orientation: ' + str(self.start_orientation))
+    def __init__(self, max_correction, start_orientation_sigma):
+        self.start_orientation = random.gauss(0, start_orientation_sigma)
         self.current_orientation = self.start_orientation
-    
-    # Setting correction to keep initial orientation
-    def updateCorrection(self, turbulence):
-        correction = -turbulence
-        # Prevent to set correction greater than 6 or lower than -6
-        if correction > 6:
-            correction = 6
-        elif correction < -6:
-            correction = -6
-        self.current_orientation = self.start_orientation + turbulence + correction
-        print('correction ' + str(correction))
+        self.correction = 0.0
+        self.max_correction = max_correction
 
-    def printActual(self):
-        print('Actual orientation: ' + str(self.current_orientation))
+    def generate_correction(self, turbulence):
+        self.correction = -turbulence
+        if self.correction > self.max_correction:
+            self.correction = self.max_correction
+        elif self.correction < -self.max_correction:
+            self.correction = -self.max_correction
+
+    def correct_orientation(self, turbulence):
+        self.generate_correction(turbulence)
+        self.current_orientation = self.start_orientation + turbulence + self.correction
+
+    def get_current_correction(self):
+        return self.correction
+
+    def get_current_orientation(self):
+        return self.current_orientation
 
 
-correction = Correction()
+if __name__ == '__main__':
+    print('Simulating turbulations.\nPress Ctrl^C to break\n')
 
-while True:
-    try:
-        turbulence = random.gauss(0, 5)
-        correction.updateCorrection(turbulence)
-        correction.printActual()
-        time.sleep(1)
-    except KeyboardInterrupt:
-        print('Simulation ended')
-        break
+    max_correction_value = 6
+    turbulence_sigma = 5
+    initial_orientation_sigma = 10
+    correction = Correction(max_correction_value, initial_orientation_sigma)
+    turbulence_generator = TurbulenceGenerator(turbulence_sigma)
+    print('Start orientation: {}\n'.format(correction.start_orientation))
+
+    while True:
+        try:
+            new_turbulence = turbulence_generator.generate_and_return()
+            print('Turbulence {}'.format(new_turbulence))
+            correction.correct_orientation(new_turbulence)
+            print('Correction {}'.format(correction.get_current_correction()))
+            print('Actual orientation: {}\n'.format(correction.get_current_orientation()))
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print('Simulation ended')
+            break
